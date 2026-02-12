@@ -6,6 +6,9 @@ import { useState } from 'react'
 export default function PropertyCard({ property, index = 0 }) {
   const [liked, setLiked] = useState(false)
 
+  const propertyId = property.id || property._id
+  const imageUrl = Array.isArray(property.images) ? property.images[0] : property.images
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -17,7 +20,7 @@ export default function PropertyCard({ property, index = 0 }) {
       {/* Image */}
       <div className="relative h-56 overflow-hidden">
         <img
-          src={property.images[0]}
+          src={imageUrl}
           alt={property.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
@@ -61,7 +64,7 @@ export default function PropertyCard({ property, index = 0 }) {
 
       {/* Content */}
       <div className="p-5 space-y-3">
-        <Link to={`/property/${property.id}`}>
+        <Link to={`/property/${propertyId}`}>
           <h3 className="font-display text-lg font-semibold group-hover:text-amber-400 transition-colors line-clamp-2">
             {property.title}
           </h3>
@@ -118,7 +121,7 @@ export default function PropertyCard({ property, index = 0 }) {
             Call
           </a>
           <Link
-            to={`/property/${property.id}`}
+            to={`/property/${propertyId}`}
             className="px-4 py-2.5 rounded-xl glass text-white/60 text-sm font-medium hover:text-white hover:bg-white/10 transition-all"
           >
             View

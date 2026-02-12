@@ -3,6 +3,33 @@ import cloudinary from '../config/cloudinary.js';
 import { Readable } from 'stream';
 
 // Helper function to upload to Cloudinary
+
+const parseBoolean = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.toLowerCase() === 'true';
+  return undefined;
+};
+
+const normalizePropertyPayload = (payload) => {
+  const normalized = { ...payload };
+  const numberFields = ['price', 'area', 'bedrooms', 'bathrooms', 'views'];
+
+  numberFields.forEach((field) => {
+    if (normalized[field] !== undefined && normalized[field] !== '') {
+      normalized[field] = Number(normalized[field]);
+    }
+  });
+
+  ['featured', 'advertised', 'active'].forEach((field) => {
+    if (normalized[field] !== undefined) {
+      const parsed = parseBoolean(normalized[field]);
+      if (parsed !== undefined) normalized[field] = parsed;
+    }
+  });
+
+  return normalized;
+};
+
 const uploadToCloudinary = (buffer, folder, resourceType = 'image') => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -237,7 +264,7 @@ export const getAdvertisements = async (req, res) => {
 // @access  Private/Admin
 export const createProperty = async (req, res) => {
   try {
-    const propertyData = req.body;
+    const propertyData = normalizePropertyPayload(req.body);
 
     // Handle image uploads
     if (req.files && req.files.images) {
@@ -292,7 +319,7 @@ export const updateProperty = async (req, res) => {
       });
     }
 
-    const propertyData = req.body;
+    const propertyData = normalizePropertyPayload(req.body);
 
     // Handle new image uploads
     if (req.files && req.files.images) {

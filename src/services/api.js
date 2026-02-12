@@ -6,11 +6,11 @@ const getAuthToken = () => {
 };
 
 // Helper function to set auth header
-const getAuthHeaders = () => {
+const getAuthHeaders = (isJson = true) => {
   const token = getAuthToken();
   return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(isJson && { 'Content-Type': 'application/json' }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
 
@@ -95,9 +95,7 @@ export const propertyAPI = {
   create: async (formData) => {
     const response = await fetch(`${API_URL}/properties`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
+      headers: getAuthHeaders(false),
       body: formData,
     });
     const data = await response.json();
@@ -108,9 +106,7 @@ export const propertyAPI = {
   update: async (id, formData) => {
     const response = await fetch(`${API_URL}/properties/${id}`, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
+      headers: getAuthHeaders(false),
       body: formData,
     });
     const data = await response.json();
