@@ -121,7 +121,7 @@ ADMIN_PASSWORD=your_secure_password
 ADMIN_SETUP_KEY=set_a_random_setup_key
 
 # Frontend URL (for CORS)
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5173,https://your-vercel-domain.vercel.app
 ```
 
 #### Create Admin Account
