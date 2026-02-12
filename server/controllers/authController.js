@@ -1,5 +1,6 @@
 import Admin from '../models/Admin.js';
 import { generateToken } from '../middleware/auth.js';
+import bcrypt from 'bcryptjs';
 
 const validateSetupKey = (req, res) => {
   const setupKey = process.env.ADMIN_SETUP_KEY;
@@ -44,6 +45,14 @@ export const login = async (req, res) => {
     const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
 
     if (!admin) {
+      const legacyAdminDoc = await Admin.collection.findOne({ ADMIN_EMAIL: normalizedEmail });
+      if (legacyAdminDoc) {
+        return res.status(409).json({
+          success: false,
+          message: 'Admin record uses legacy field names (ADMIN_EMAIL/ADMIN_PASSWORD). Please reset using /api/auth/reset-password to migrate safely.',
+        });
+      }
+
       const hasAnyAdmin = await Admin.exists({});
       return res.status(hasAnyAdmin ? 401 : 404).json({
         success: false,
@@ -62,7 +71,18 @@ export const login = async (req, res) => {
     }
 
     // Check password
-    const isMatch = await admin.matchPassword(password);
+    let isMatch = false;
+    const looksHashed = typeof admin.password === 'string' && /^\$2[aby]\$\d{2}\$/.test(admin.password);
+
+    if (looksHashed) {
+      isMatch = await admin.matchPassword(password);
+    } else if (typeof admin.password === 'string') {
+      isMatch = admin.password === password;
+      if (isMatch) {
+        admin.password = await bcrypt.hash(password, 10);
+        await admin.save();
+      }
+    }
 
     if (!isMatch) {
       return res.status(401).json({
