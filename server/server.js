@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import connectDB from './config/db.js';
+import connectDB, { isDbConnected } from './config/db.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 // Routes
@@ -58,10 +58,21 @@ app.use(cors(corsOptions));
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
+  res.status(isDbConnected() ? 200 : 503).json({
+    success: isDbConnected(),
+    message: isDbConnected() ? 'Server is running' : 'Server running but database unavailable',
+    dbConnected: isDbConnected(),
     timestamp: new Date().toISOString(),
+  });
+});
+
+// API availability guard
+app.use('/api', (req, res, next) => {
+  if (isDbConnected()) return next();
+
+  return res.status(503).json({
+    success: false,
+    message: 'Database unavailable. Check MongoDB Atlas network access/whitelist and server configuration.',
   });
 });
 
