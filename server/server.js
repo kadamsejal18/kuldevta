@@ -18,6 +18,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -27,6 +28,21 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
+});
+
+const LEGACY_PREFIXES = ['/auth', '/properties', '/leads'];
+
+// Backward compatibility for clients that call routes without the `/api` prefix.
+app.use((req, res, next) => {
+  const shouldRewrite = LEGACY_PREFIXES.some(
+    (prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`)
+  );
+
+  if (shouldRewrite) {
+    req.url = `/api${req.url}`;
+  }
+
+  next();
 });
 
 app.use('/api/', limiter);
@@ -77,19 +93,11 @@ const dbGuard = (req, res, next) => {
 };
 
 app.use('/api', dbGuard);
-app.use('/auth', dbGuard);
-app.use('/properties', dbGuard);
-app.use('/leads', dbGuard);
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/leads', leadRoutes);
-
-// Backward-compatible routes (for deployments/proxies accidentally stripping `/api`)
-app.use('/auth', authRoutes);
-app.use('/properties', propertyRoutes);
-app.use('/leads', leadRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -98,11 +106,12 @@ app.get('/', (req, res) => {
     message: 'Kuldevta Estate Agency API',
     version: '1.0.0',
     endpoints: {
-      auth: '/api/auth (also /auth)',
-      properties: '/api/properties (also /properties)',
-      leads: '/api/leads (also /leads)',
+      auth: '/api/auth',
+      properties: '/api/properties',
+      leads: '/api/leads',
       health: '/health',
     },
+    compatibility: 'Calls to /auth, /properties, and /leads are automatically rewritten to /api/*',
   });
 });
 
