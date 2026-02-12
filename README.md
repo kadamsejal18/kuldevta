@@ -118,6 +118,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 # Admin Configuration
 ADMIN_EMAIL=admin@kuldevta.com
 ADMIN_PASSWORD=your_secure_password
+ADMIN_SETUP_KEY=set_a_random_setup_key
 
 # Frontend URL (for CORS)
 FRONTEND_URL=http://localhost:5173
@@ -131,6 +132,7 @@ npm start
 # Make a POST request to create admin (one-time only)
 curl -X POST http://localhost:5000/api/auth/create-admin \
   -H "Content-Type: application/json" \
+  -H "x-admin-setup-key: <your_admin_setup_key>" \
   -d '{
     "email": "admin@kuldevta.com",
     "password": "your_secure_password",
@@ -239,6 +241,12 @@ npm run preview
 5. **Deploy**
    - Click "Deploy"
    - Wait for deployment to complete
+
+## 🔒 Security Notes
+
+- Never commit real emails/passwords or API keys to GitHub.
+- Keep `.env` files private and rotate secrets if they were ever shared.
+- In production, `POST /api/auth/create-admin` requires `x-admin-setup-key` and can be disabled by omitting `ADMIN_SETUP_KEY`.
 
 ## 📱 Admin Access
 

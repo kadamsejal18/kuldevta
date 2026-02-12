@@ -54,6 +54,7 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ADMIN_EMAIL=admin@kuldevta.com
 ADMIN_PASSWORD=your_secure_password
+ADMIN_SETUP_KEY=set_a_random_setup_key
 ```
 
 ## Step 3: Configure Frontend
@@ -87,6 +88,7 @@ Open a new terminal and run:
 ```bash
 curl -X POST http://localhost:5000/api/auth/create-admin \
   -H "Content-Type: application/json" \
+  -H "x-admin-setup-key: <your_admin_setup_key>" \
   -d '{
     "email": "admin@kuldevta.com",
     "password": "your_secure_password",
@@ -134,6 +136,13 @@ npm run dev
 4. Check in admin panel
 
 ## 🎉 You're Done!
+
+## 🔒 Security Reminder
+
+- Never commit real credentials to GitHub.
+- Keep your `.env` files private.
+- Rotate secrets immediately if credentials were exposed.
+
 
 Your Kuldevta Estate Agency is now running!
 

@@ -101,6 +101,23 @@ export const getMe = async (req, res) => {
 // @access  Public (DISABLE IN PRODUCTION AFTER FIRST RUN)
 export const createAdmin = async (req, res) => {
   try {
+    const setupKey = process.env.ADMIN_SETUP_KEY;
+    const providedSetupKey = req.headers['x-admin-setup-key'];
+
+    if (process.env.NODE_ENV === 'production' && !setupKey) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin setup is disabled in production',
+      });
+    }
+
+    if (setupKey && providedSetupKey !== setupKey) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin setup key',
+      });
+    }
+
     // Check if admin already exists
     const adminExists = await Admin.findOne({});
 
