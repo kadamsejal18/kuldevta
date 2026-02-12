@@ -7,9 +7,10 @@ import { generateToken } from '../middleware/auth.js';
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     // Validate input
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
@@ -17,7 +18,7 @@ export const login = async (req, res) => {
     }
 
     // Check for admin
-    const admin = await Admin.findOne({ email }).select('+password');
+    const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
 
     if (!admin) {
       return res.status(401).json({
@@ -112,10 +113,18 @@ export const createAdmin = async (req, res) => {
     }
 
     const { email, password, name } = req.body;
+    const normalizedEmail = (email || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+
+    if (!normalizedEmail || !(password || process.env.ADMIN_PASSWORD)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin email and password are required',
+      });
+    }
 
     // Create admin
     const admin = await Admin.create({
-      email: email || process.env.ADMIN_EMAIL,
+      email: normalizedEmail,
       password: password || process.env.ADMIN_PASSWORD,
       name: name || 'Admin',
       role: 'super-admin',

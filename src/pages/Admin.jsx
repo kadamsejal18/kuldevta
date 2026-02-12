@@ -18,6 +18,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [credentials, setCredentials] = useState({ email: '', password: '' })
+  const [loginError, setLoginError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [properties, setProperties] = useState([])
   const [leads, setLeads] = useState([])
   const [form, setForm] = useState(initialForm)
@@ -47,10 +49,19 @@ export default function Admin() {
 
   const onLogin = async (e) => {
     e.preventDefault()
-    const data = await authAPI.login(credentials.email, credentials.password)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('admin', JSON.stringify(data.admin))
-    setToken(data.token)
+    setLoginError('')
+    setIsLoggingIn(true)
+
+    try {
+      const data = await authAPI.login(credentials.email.trim().toLowerCase(), credentials.password)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('admin', JSON.stringify(data.admin))
+      setToken(data.token)
+    } catch (error) {
+      setLoginError(error.message || 'Unable to login. Please check your email/password.')
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -86,7 +97,8 @@ export default function Admin() {
           <form className="space-y-4" onSubmit={onLogin}>
             <input type="email" required value={credentials.email} onChange={(e) => setCredentials((p) => ({ ...p, email: e.target.value }))} placeholder="Email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
             <input type="password" required value={credentials.password} onChange={(e) => setCredentials((p) => ({ ...p, password: e.target.value }))} placeholder="Password" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
-            <button type="submit" className="btn-luxury w-full">Login</button>
+            {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
+            <button type="submit" disabled={isLoggingIn} className="btn-luxury w-full disabled:opacity-60">{isLoggingIn ? 'Logging in...' : 'Login'}</button>
           </form>
         </div>
       </div>
