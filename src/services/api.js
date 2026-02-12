@@ -1,4 +1,20 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const normalizeApiBaseUrl = () => {
+  const configured = (import.meta.env.VITE_API_URL || '').trim();
+
+  if (!configured) {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/api`;
+    }
+    return 'http://localhost:5000/api';
+  }
+
+  const withoutTrailingSlash = configured.replace(/\/+$/, '');
+  return withoutTrailingSlash.endsWith('/api')
+    ? withoutTrailingSlash
+    : `${withoutTrailingSlash}/api`;
+};
+
+const API_URL = normalizeApiBaseUrl();
 
 // Helper function to get auth token
 const getAuthToken = () => {
