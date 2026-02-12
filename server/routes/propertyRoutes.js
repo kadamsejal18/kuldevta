@@ -21,6 +21,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', getProperties);
+router.get('/admin/all', protect, getAdminProperties);
 router.get('/trending', getTrendingProperties);
 router.get('/featured', getFeaturedProperties);
 router.get('/advertisements', getAdvertisements);
@@ -52,8 +53,5 @@ router.delete('/:id', protect, deleteProperty);
 router.delete('/:id/images/:publicId', protect, deletePropertyImage);
 router.put('/:id/featured', protect, toggleFeatured);
 router.put('/:id/active', protect, toggleActive);
-
-// Admin property list
-router.get('/admin/all', protect, getAdminProperties);
 
 export default router;
