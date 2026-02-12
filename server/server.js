@@ -18,17 +18,19 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.set('trust proxy', 1);
+
+const normalizeTrustProxy = (value) => {
+  if (value === undefined || value === null || value === '') return 1;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  const asNumber = Number(value);
+  return Number.isNaN(asNumber) ? value : asNumber;
+};
+
+app.set('trust proxy', normalizeTrustProxy(process.env.TRUST_PROXY));
 
 // Security middleware
 app.use(helmet());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
 
 const LEGACY_PREFIXES = ['/auth', '/properties', '/leads'];
 
@@ -43,6 +45,18 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+  },
 });
 
 app.use('/api/', limiter);

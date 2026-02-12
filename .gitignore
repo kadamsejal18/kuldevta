@@ -37,3 +37,6 @@ coverage/
 .cache/
 temp/
 tmp/
+
+# Build output
+dist/

@@ -44,9 +44,12 @@ export const login = async (req, res) => {
     const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
 
     if (!admin) {
-      return res.status(401).json({
+      const hasAnyAdmin = await Admin.exists({});
+      return res.status(hasAnyAdmin ? 401 : 404).json({
         success: false,
-        message: 'Invalid credentials',
+        message: hasAnyAdmin
+          ? 'Invalid credentials'
+          : 'No admin account found. Create one using /api/auth/create-admin or reset via /api/auth/reset-password.',
       });
     }
 
