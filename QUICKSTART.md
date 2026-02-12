@@ -99,6 +99,18 @@ curl -X POST http://localhost:5000/api/auth/create-admin \
 # {"success":true,"message":"Admin created successfully",...}
 ```
 
+### Recovery: If admin login says "Invalid credentials"
+
+```bash
+curl -X POST http://localhost:5000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -H "x-admin-setup-key: <your_admin_setup_key>" \
+  -d '{
+    "email": "admin@kuldevta.com",
+    "password": "new_secure_password"
+  }'
+```
+
 ## Step 6: Start Frontend
 
 Open another terminal:

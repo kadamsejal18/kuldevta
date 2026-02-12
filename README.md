@@ -140,6 +140,17 @@ curl -X POST http://localhost:5000/api/auth/create-admin \
   }'
 ```
 
+#### Reset Admin Password (if login shows Invalid credentials)
+```bash
+curl -X POST http://localhost:5000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -H "x-admin-setup-key: <your_admin_setup_key>" \
+  -d '{
+    "email": "admin@kuldevta.com",
+    "password": "new_secure_password"
+  }'
+```
+
 ### 3. Frontend Setup
 
 #### Install Dependencies
@@ -260,6 +271,7 @@ npm run preview
 - `POST /api/auth/login` - Admin login
 - `GET /api/auth/me` - Get current admin
 - `POST /api/auth/create-admin` - Create admin (one-time)
+- `POST /api/auth/reset-password` - Reset admin password (requires `x-admin-setup-key`)
 
 ### Properties (Public)
 - `GET /api/properties` - Get all properties

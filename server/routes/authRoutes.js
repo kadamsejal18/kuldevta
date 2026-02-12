@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, getMe, createAdmin } from '../controllers/authController.js';
+import { login, getMe, createAdmin, resetAdminPassword } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -7,5 +7,6 @@ const router = express.Router();
 router.post('/login', login);
 router.get('/me', protect, getMe);
 router.post('/create-admin', createAdmin); // Disable after first use
+router.post('/reset-password', resetAdminPassword); // Emergency recovery via setup key
 
 export default router;

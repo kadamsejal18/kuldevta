@@ -1,6 +1,29 @@
 import Admin from '../models/Admin.js';
 import { generateToken } from '../middleware/auth.js';
 
+const validateSetupKey = (req, res) => {
+  const setupKey = process.env.ADMIN_SETUP_KEY;
+  const providedSetupKey = req.headers['x-admin-setup-key'];
+
+  if (process.env.NODE_ENV === 'production' && !setupKey) {
+    res.status(403).json({
+      success: false,
+      message: 'Admin setup is disabled in production',
+    });
+    return false;
+  }
+
+  if (setupKey && providedSetupKey !== setupKey) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid admin setup key',
+    });
+    return false;
+  }
+
+  return true;
+};
+
 // @desc    Admin login
 // @route   POST /api/auth/login
 // @access  Public
@@ -101,22 +124,7 @@ export const getMe = async (req, res) => {
 // @access  Public (DISABLE IN PRODUCTION AFTER FIRST RUN)
 export const createAdmin = async (req, res) => {
   try {
-    const setupKey = process.env.ADMIN_SETUP_KEY;
-    const providedSetupKey = req.headers['x-admin-setup-key'];
-
-    if (process.env.NODE_ENV === 'production' && !setupKey) {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin setup is disabled in production',
-      });
-    }
-
-    if (setupKey && providedSetupKey !== setupKey) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid admin setup key',
-      });
-    }
+    if (!validateSetupKey(req, res)) return;
 
     // Check if admin already exists
     const adminExists = await Admin.findOne({});
@@ -158,6 +166,50 @@ export const createAdmin = async (req, res) => {
   } catch (error) {
     console.error('Create admin error:', error);
     res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+
+// @desc    Reset admin password using setup key
+// @route   POST /api/auth/reset-password
+// @access  Protected by x-admin-setup-key
+export const resetAdminPassword = async (req, res) => {
+  try {
+    if (!validateSetupKey(req, res)) return;
+
+    const { email, password } = req.body;
+    const normalizedEmail = (email || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and new password are required',
+      });
+    }
+
+    const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin account not found',
+      });
+    }
+
+    admin.password = password;
+    admin.active = true;
+    await admin.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Admin password reset successfully',
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
       success: false,
       message: 'Server error',
     });
