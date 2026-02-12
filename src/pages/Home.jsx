@@ -7,18 +7,43 @@ import {
   Bed, Bath, Maximize, Star, TrendingUp, Filter, Send
 } from 'lucide-react'
 import PropertyCard from '../components/PropertyCard'
-import { properties, newProjects, advertisements, categories } from '../data/properties'
+import { propertyAPI } from '../services/api'
+import { normalizeProperty } from '../utils/propertyMapper'
 
 export default function Home() {
+  const [properties, setProperties] = useState([])
+  const [advertisements, setAdvertisements] = useState([])
+
+  useEffect(() => {
+    const load = async () => {
+      const [allRes, adRes] = await Promise.all([
+        propertyAPI.getAll({ limit: 100 }),
+        propertyAPI.getAdvertisements(),
+      ])
+      setProperties((allRes.properties || []).map(normalizeProperty))
+      setAdvertisements((adRes.properties || []).map(normalizeProperty))
+    }
+
+    load().catch((error) => console.error('Home load error:', error))
+  }, [])
+
+  const categories = [
+    { name: '1BHK', icon: HomeIcon },
+    { name: '2BHK', icon: Building2 },
+    { name: '3BHK', icon: Key },
+  ]
+
+  const newProjects = properties.slice(0, 6)
+
   return (
     <div className="min-h-screen">
       <HeroSection />
-      <AdvertisementSection />
-      <FeaturedProperties />
-      <NewProjectsSection />
-      <AIRecommendation />
-      <AllProperties />
-      <CategoriesSection />
+      <AdvertisementSection advertisements={advertisements} />
+      <FeaturedProperties properties={properties} />
+      <NewProjectsSection newProjects={newProjects} />
+      <AIRecommendation properties={properties} />
+      <AllProperties properties={properties} />
+      <CategoriesSection categories={categories} />
       <SellPropertyForm />
     </div>
   )
@@ -151,9 +176,9 @@ function HeroSection() {
   )
 }
 
-function AdvertisementSection() {
+function AdvertisementSection({ advertisements }) {
   const [current, setCurrent] = useState(0)
-  const scrollRef = useRef(null)
+  if (!advertisements.length) return null
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -176,7 +201,7 @@ function AdvertisementSection() {
             className="relative rounded-3xl overflow-hidden h-[300px] sm:h-[400px]"
           >
             <img
-              src={advertisements[current].image}
+              src={advertisements[current].images[0]}
               alt={advertisements[current].title}
               className="w-full h-full object-cover"
             />
@@ -197,7 +222,7 @@ function AdvertisementSection() {
                   transition={{ delay: 0.4 }}
                   className="text-white/60 text-lg"
                 >
-                  {advertisements[current].subtitle}
+                  {advertisements[current].description}
                 </motion.p>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -244,7 +269,7 @@ function AdvertisementSection() {
   )
 }
 
-function FeaturedProperties() {
+function FeaturedProperties({ properties }) {
   const featured = properties.filter(p => p.featured)
   const scrollRef = useRef(null)
 
@@ -298,7 +323,7 @@ function FeaturedProperties() {
   )
 }
 
-function NewProjectsSection() {
+function NewProjectsSection({ newProjects }) {
   return (
     <section className="py-20 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-900/5 to-transparent" />
@@ -335,30 +360,30 @@ function NewProjectsSection() {
               <div className="flex flex-col sm:flex-row">
                 <div className="sm:w-48 h-48 sm:h-auto overflow-hidden flex-shrink-0">
                   <img
-                    src={project.image}
-                    alt={project.name}
+                    src={project.images[0]}
+                    alt={project.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                 </div>
                 <div className="p-5 flex-1 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
-                      project.status === 'Ready to Move'
+                      (project.active ? 'Ready to Move' : 'Upcoming') === 'Ready to Move'
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : project.status === 'Newly Launched'
+                        : (project.active ? 'Ready to Move' : 'Upcoming') === 'Newly Launched'
                         ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                         : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                     }`}>
-                      {project.status}
+                      {(project.active ? 'Ready to Move' : 'Upcoming')}
                     </span>
                   </div>
-                  <h3 className="font-display text-xl font-semibold">{project.name}</h3>
-                  <p className="text-white/40 text-sm">{project.developer}</p>
+                  <h3 className="font-display text-xl font-semibold">{project.title}</h3>
+                  <p className="text-white/40 text-sm">{project.category}</p>
                   <div className="flex items-center gap-1.5 text-white/40 text-sm">
                     <MapPin size={14} /> {project.location}
                   </div>
-                  <p className="text-lg font-semibold gradient-text">{project.priceRange}</p>
-                  <p className="text-white/40 text-xs">{project.units} | Completion: {project.completion}</p>
+                  <p className="text-lg font-semibold gradient-text">{project.price}</p>
+                  <p className="text-white/40 text-xs">Type: {project.type}</p>
                   <div className="flex gap-2 pt-1">
                     <a
                       href="https://wa.me/919930388219"
@@ -385,7 +410,7 @@ function NewProjectsSection() {
   )
 }
 
-function AIRecommendation() {
+function AIRecommendation({ properties }) {
   const [budget, setBudget] = useState(50)
   const [bhk, setBhk] = useState('2BHK')
   const [location, setLocation] = useState('')
@@ -500,7 +525,7 @@ function AIRecommendation() {
   )
 }
 
-function AllProperties() {
+function AllProperties({ properties }) {
   const [filter, setFilter] = useState('all')
   const filtered = filter === 'all' ? properties : properties.filter(p => p.type === filter)
 
@@ -547,7 +572,7 @@ function AllProperties() {
   )
 }
 
-function CategoriesSection() {
+function CategoriesSection({ categories }) {
   const buyCategories = [
     { name: '1RK', icon: '🏠', count: 15 },
     { name: '1BHK', icon: '🏡', count: 42 },
