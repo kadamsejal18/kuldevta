@@ -22,6 +22,20 @@ const normalizeApiBaseUrl = () => {
 
 const API_URL = normalizeApiBaseUrl();
 
+const isBrowser = typeof window !== 'undefined';
+const isFrontendLocalhost = isBrowser
+  ? ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  : false;
+const isApiLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api$/i.test(API_URL);
+
+const getApiConfigurationError = () => {
+  if (isBrowser && !isFrontendLocalhost && isApiLocalhost) {
+    return `Invalid VITE_API_URL for deployed frontend: ${API_URL}. You are using localhost in production. Set VITE_API_URL to your live backend URL (example: https://your-backend.onrender.com/api).`;
+  }
+
+  return null;
+};
+
 const parseResponse = async (response) => {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
@@ -37,6 +51,11 @@ const parseResponse = async (response) => {
 
 const requestJson = async (path, options = {}) => {
   try {
+    const configError = getApiConfigurationError();
+    if (configError) {
+      throw new Error(configError);
+    }
+
     const response = await fetch(`${API_URL}${path}`, options);
     const data = await parseResponse(response);
     if (!response.ok) throw new Error(data.message || 'Request failed');
