@@ -45,9 +45,8 @@ export const login = async (req, res) => {
       });
     }
 
-    // Update last login
-    admin.lastLogin = new Date();
-    await admin.save();
+    // Update last login without re-saving password field
+    await Admin.findByIdAndUpdate(admin._id, { lastLogin: new Date() });
 
     // Generate token
     const token = generateToken(admin._id);
