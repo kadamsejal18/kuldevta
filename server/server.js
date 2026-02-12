@@ -67,19 +67,29 @@ app.get('/health', (req, res) => {
 });
 
 // API availability guard
-app.use('/api', (req, res, next) => {
+const dbGuard = (req, res, next) => {
   if (isDbConnected()) return next();
 
   return res.status(503).json({
     success: false,
     message: 'Database unavailable. Check MongoDB Atlas network access/whitelist and server configuration.',
   });
-});
+};
+
+app.use('/api', dbGuard);
+app.use('/auth', dbGuard);
+app.use('/properties', dbGuard);
+app.use('/leads', dbGuard);
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/leads', leadRoutes);
+
+// Backward-compatible routes (for deployments/proxies accidentally stripping `/api`)
+app.use('/auth', authRoutes);
+app.use('/properties', propertyRoutes);
+app.use('/leads', leadRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -88,9 +98,9 @@ app.get('/', (req, res) => {
     message: 'Kuldevta Estate Agency API',
     version: '1.0.0',
     endpoints: {
-      auth: '/api/auth',
-      properties: '/api/properties',
-      leads: '/api/leads',
+      auth: '/api/auth (also /auth)',
+      properties: '/api/properties (also /properties)',
+      leads: '/api/leads (also /leads)',
       health: '/health',
     },
   });
