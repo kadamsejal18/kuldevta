@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 let dbConnected = false;
 let reconnectTimer;
 
+const getMongoUri = () => process.env.MONGODB_URI || process.env.MONGO_URI;
+
 const startReconnectLoop = () => {
   if (reconnectTimer) return;
 
@@ -10,7 +12,13 @@ const startReconnectLoop = () => {
     if (dbConnected) return;
 
     try {
-      const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      const mongoUri = getMongoUri();
+      if (!mongoUri) {
+        console.error('MongoDB reconnect skipped: MONGODB_URI/MONGO_URI is missing');
+        return;
+      }
+
+      const conn = await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: 10000,
       });
       dbConnected = true;
@@ -24,14 +32,16 @@ const startReconnectLoop = () => {
 };
 
 const connectDB = async () => {
-  if (!process.env.MONGODB_URI) {
-    console.error('MongoDB Error: MONGODB_URI is missing');
+  const mongoUri = getMongoUri();
+
+  if (!mongoUri) {
+    console.error('MongoDB Error: MONGODB_URI/MONGO_URI is missing');
     startReconnectLoop();
     return;
   }
 
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+    const conn = await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 10000,
     });
     dbConnected = true;

@@ -25,6 +25,53 @@ const validateSetupKey = (req, res) => {
   return true;
 };
 
+const isBcryptHash = (value) => typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+
+const migrateLegacyAdminRecord = async (legacyAdminDoc, normalizedEmail, enteredPassword) => {
+  const legacyPassword =
+    legacyAdminDoc.ADMIN_PASSWORD
+    || legacyAdminDoc.admin_password
+    || legacyAdminDoc.password;
+
+  if (typeof legacyPassword !== 'string' || !legacyPassword) {
+    return { matched: false, reason: 'Legacy admin password is missing' };
+  }
+
+  const matched = isBcryptHash(legacyPassword)
+    ? await bcrypt.compare(enteredPassword, legacyPassword)
+    : legacyPassword === enteredPassword;
+
+  if (!matched) {
+    return { matched: false };
+  }
+
+  const passwordHash = isBcryptHash(legacyPassword)
+    ? legacyPassword
+    : await bcrypt.hash(enteredPassword, 10);
+
+  await Admin.collection.updateOne(
+    { _id: legacyAdminDoc._id },
+    {
+      $set: {
+        email: normalizedEmail,
+        password: passwordHash,
+        name: legacyAdminDoc.name || 'Admin',
+        role: legacyAdminDoc.role || 'super-admin',
+        active: legacyAdminDoc.active !== false,
+        lastLogin: new Date(),
+      },
+      $unset: {
+        ADMIN_EMAIL: '',
+        ADMIN_PASSWORD: '',
+        admin_email: '',
+        admin_password: '',
+      },
+    }
+  );
+
+  return { matched: true, migrated: true, id: legacyAdminDoc._id };
+};
+
 // @desc    Admin login
 // @route   POST /api/auth/login
 // @access  Public
@@ -45,11 +92,35 @@ export const login = async (req, res) => {
     const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
 
     if (!admin) {
-      const legacyAdminDoc = await Admin.collection.findOne({ ADMIN_EMAIL: normalizedEmail });
+      const legacyAdminDoc = await Admin.collection.findOne({
+        $or: [
+          { ADMIN_EMAIL: normalizedEmail },
+          { admin_email: normalizedEmail },
+        ],
+      });
+
       if (legacyAdminDoc) {
-        return res.status(409).json({
+        const migrationResult = await migrateLegacyAdminRecord(legacyAdminDoc, normalizedEmail, password);
+
+        if (migrationResult.matched && migrationResult.id) {
+          const migratedAdmin = await Admin.findById(migrationResult.id);
+          const token = generateToken(migrationResult.id);
+
+          return res.status(200).json({
+            success: true,
+            token,
+            admin: {
+              id: migratedAdmin._id,
+              email: migratedAdmin.email,
+              name: migratedAdmin.name,
+              role: migratedAdmin.role,
+            },
+          });
+        }
+
+        return res.status(401).json({
           success: false,
-          message: 'Admin record uses legacy field names (ADMIN_EMAIL/ADMIN_PASSWORD). Please reset using /api/auth/reset-password to migrate safely.',
+          message: migrationResult.reason || 'Invalid credentials',
         });
       }
 
@@ -72,7 +143,7 @@ export const login = async (req, res) => {
 
     // Check password
     let isMatch = false;
-    const looksHashed = typeof admin.password === 'string' && /^\$2[aby]\$\d{2}\$/.test(admin.password);
+    const looksHashed = isBcryptHash(admin.password);
 
     if (looksHashed) {
       isMatch = await admin.matchPassword(password);
