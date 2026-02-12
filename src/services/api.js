@@ -9,12 +9,45 @@ const normalizeApiBaseUrl = () => {
   }
 
   const withoutTrailingSlash = configured.replace(/\/+$/, '');
-  return withoutTrailingSlash.endsWith('/api')
+  const withApiPath = withoutTrailingSlash.endsWith('/api')
     ? withoutTrailingSlash
     : `${withoutTrailingSlash}/api`;
+
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && withApiPath.startsWith('http://') && !withApiPath.includes('localhost')) {
+    return withApiPath.replace('http://', 'https://');
+  }
+
+  return withApiPath;
 };
 
 const API_URL = normalizeApiBaseUrl();
+
+const parseResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return {
+    success: false,
+    message: text || 'Unexpected server response',
+  };
+};
+
+const requestJson = async (path, options = {}) => {
+  try {
+    const response = await fetch(`${API_URL}${path}`, options);
+    const data = await parseResponse(response);
+    if (!response.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`Unable to connect to API (${API_URL}). Check VITE_API_URL, backend status, CORS, and HTTPS settings.`);
+    }
+    throw error;
+  }
+};
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -33,23 +66,17 @@ const getAuthHeaders = (isJson = true) => {
 // Auth API
 export const authAPI = {
   login: async (email, password) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    return requestJson('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message);
-    return data;
   },
 
   getMe: async () => {
-    const response = await fetch(`${API_URL}/auth/me`, {
+    return requestJson('/auth/me', {
       headers: getAuthHeaders(),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message);
-    return data;
   },
 
   logout: () => {
@@ -175,15 +202,9 @@ export const propertyAPI = {
 
   getAdminProperties: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const response = await fetch(
-      `${API_URL}/properties/admin/all?${queryString}`,
-      {
-        headers: getAuthHeaders(),
-      }
-    );
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message);
-    return data;
+    return requestJson(`/properties/admin/all?${queryString}`, {
+      headers: getAuthHeaders(),
+    });
   },
 };
 
@@ -203,12 +224,9 @@ export const leadAPI = {
   // Admin endpoints
   getAll: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const response = await fetch(`${API_URL}/leads?${queryString}`, {
+    return requestJson(`/leads?${queryString}`, {
       headers: getAuthHeaders(),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message);
-    return data;
   },
 
   getByProperty: async (propertyId, params = {}) => {
