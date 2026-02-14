@@ -8,16 +8,35 @@ const normalizeApiBaseUrl = () => {
     return 'http://localhost:5000/api';
   }
 
-  const withoutTrailingSlash = configured.replace(/\/+$/, '');
-  const withApiPath = withoutTrailingSlash.endsWith('/api')
-    ? withoutTrailingSlash
-    : `${withoutTrailingSlash}/api`;
+  const normalizedInput = configured.replace(/\/+$/, '');
 
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && withApiPath.startsWith('http://') && !withApiPath.includes('localhost')) {
-    return withApiPath.replace('http://', 'https://');
+  // Accept common misconfigurations like full auth endpoint URLs and normalize to `/api` base.
+  if (/\/api\/auth(\/|$)/i.test(normalizedInput)) {
+    return normalizedInput.replace(/\/api\/auth(?:\/.*)?$/i, '/api');
   }
 
-  return withApiPath;
+  try {
+    const parsed = new URL(normalizedInput);
+    const hasApiPath = /\/api(?:\/|$)/i.test(parsed.pathname);
+    const normalizedPath = hasApiPath ? '/api' : `${parsed.pathname.replace(/\/+$/, '')}/api`;
+    const candidate = `${parsed.origin}${normalizedPath === '/api' ? '/api' : normalizedPath}`;
+
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && candidate.startsWith('http://') && !candidate.includes('localhost')) {
+      return candidate.replace('http://', 'https://');
+    }
+
+    return candidate;
+  } catch {
+    const withApiPath = normalizedInput.endsWith('/api')
+      ? normalizedInput
+      : `${normalizedInput}/api`;
+
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && withApiPath.startsWith('http://') && !withApiPath.includes('localhost')) {
+      return withApiPath.replace('http://', 'https://');
+    }
+
+    return withApiPath;
+  }
 };
 
 const API_URL = normalizeApiBaseUrl();
