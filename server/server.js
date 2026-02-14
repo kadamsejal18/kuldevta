@@ -90,8 +90,23 @@ app.get('/health', (req, res) => {
 });
 
 // Explicit login handlers kept at app-level as a compatibility fallback for deployments/proxies.
-app.post('/api/auth/login', login);
-app.post('/auth/login', login);
+app.route('/api/auth/login')
+  .post(login)
+  .get((req, res) => {
+    res.status(405).json({
+      success: false,
+      message: 'Use POST /api/auth/login for admin authentication',
+    });
+  });
+
+app.route('/auth/login')
+  .post(login)
+  .get((req, res) => {
+    res.status(405).json({
+      success: false,
+      message: 'Use POST /auth/login for admin authentication',
+    });
+  });
 
 // API availability guard
 const dbGuard = (req, res, next) => {
