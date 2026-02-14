@@ -59,10 +59,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS
-const allowedOrigins = (process.env.FRONTEND_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const resolveAllowedOrigins = () => {
+  const configuredOrigins =
+    process.env.ALLOWED_ORIGINS
+    || process.env.CORS_ORIGIN
+    || process.env.FRONTEND_URL
+    || '';
+
+  return configuredOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+};
+
+const allowedOrigins = resolveAllowedOrigins();
 
 const corsOptions = {
   origin: (origin, callback) => {
