@@ -10,6 +10,7 @@ import { errorHandler, notFound } from './middleware/error.js';
 import authRoutes from './routes/authRoutes.js';
 import propertyRoutes from './routes/propertyRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
+import { login } from './controllers/authController.js';
 
 // Load env vars
 dotenv.config();
@@ -85,6 +86,10 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Explicit login handlers kept at app-level as a compatibility fallback for deployments/proxies.
+app.post('/api/auth/login', login);
+app.post('/auth/login', login);
 
 // API availability guard
 const dbGuard = (req, res, next) => {
