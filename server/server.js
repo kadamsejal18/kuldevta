@@ -141,6 +141,12 @@ app.get('/', (req, res) => {
   });
 });
 
+
+// Prevent noisy 404/500 logs from browser favicon auto-requests.
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // Error handlers
 app.use(notFound);
 app.use(errorHandler);
