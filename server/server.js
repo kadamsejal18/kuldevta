@@ -21,6 +21,7 @@ connectDB();
 const app = express();
 
 // Render/Vercel sit behind a reverse proxy; trust first proxy hop for correct client IP.
+app.enable('trust proxy');
 app.set('trust proxy', 1);
 
 // Security middleware
@@ -48,6 +49,7 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
 });
 
 app.use('/api/', limiter);
