@@ -218,8 +218,6 @@ export const getMe = async (req, res) => {
 // @access  Public (DISABLE IN PRODUCTION AFTER FIRST RUN)
 export const createAdmin = async (req, res) => {
   try {
-    if (!validateSetupKey(req, res)) return;
-
     // Check if admin already exists
     const adminExists = await Admin.findOne({});
 
@@ -229,6 +227,23 @@ export const createAdmin = async (req, res) => {
         message: 'Admin already exists. This endpoint is disabled.',
       });
     }
+
+    const setupKey = process.env.ADMIN_SETUP_KEY;
+    const providedSetupKey = req.headers['x-admin-setup-key'];
+    const envEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const envPassword = process.env.ADMIN_PASSWORD || '';
+    const reqEmail = (req.body?.email || '').trim().toLowerCase();
+    const reqPassword = req.body?.password || '';
+
+    const canBootstrapWithoutSetupKey =
+      process.env.NODE_ENV === 'production'
+      && !setupKey
+      && envEmail
+      && envPassword
+      && reqEmail === envEmail
+      && reqPassword === envPassword;
+
+    if (!canBootstrapWithoutSetupKey && !validateSetupKey(req, res)) return;
 
     const { email, password, name } = req.body;
     const normalizedEmail = (email || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
