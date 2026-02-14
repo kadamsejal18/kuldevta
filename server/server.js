@@ -108,6 +108,13 @@ app.route('/auth/login')
     });
   });
 
+app.get('/login', (req, res) => {
+  res.status(405).json({
+    success: false,
+    message: 'Use POST /api/auth/login for admin authentication',
+  });
+});
+
 // API availability guard
 const dbGuard = (req, res, next) => {
   if (isDbConnected()) return next();

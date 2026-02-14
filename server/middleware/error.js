@@ -5,6 +5,12 @@ export const errorHandler = (err, req, res, next) => {
   // Log to console for dev
   console.error(err);
 
+
+  // CORS blocked origin
+  if (err.message && err.message.startsWith('CORS blocked for origin:')) {
+    error = { message: err.message, statusCode: 403 };
+  }
+
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     const message = 'Resource not found';
