@@ -19,15 +19,8 @@ connectDB();
 
 const app = express();
 
-const normalizeTrustProxy = (value) => {
-  if (value === undefined || value === null || value === '') return 1;
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  const asNumber = Number(value);
-  return Number.isNaN(asNumber) ? value : asNumber;
-};
-
-app.set('trust proxy', normalizeTrustProxy(process.env.TRUST_PROXY));
+// Render/Vercel sit behind a reverse proxy; trust first proxy hop for correct client IP.
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -54,9 +47,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-  },
 });
 
 app.use('/api/', limiter);
