@@ -142,6 +142,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/leads', leadRoutes);
 
+
+// If someone opens backend /admin directly, guide/redirect to frontend admin route.
+app.get(['/admin', '/admin/*'], (req, res) => {
+  const frontendUrl = (process.env.FRONTEND_URL || '').split(',')[0]?.trim();
+
+  if (frontendUrl) {
+    return res.redirect(302, `${frontendUrl.replace(/\/+$/, '')}/admin`);
+  }
+
+  return res.status(404).json({
+    success: false,
+    message: 'Admin UI is served by frontend. Open /admin on your frontend domain.',
+  });
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.status(200).json({
