@@ -100,30 +100,24 @@ app.get('/health', (req, res) => {
 });
 
 // Explicit login handlers kept at app-level as a compatibility fallback for deployments/proxies.
-app.route('/api/auth/login')
-  .post(login)
-  .get((req, res) => {
-    res.status(405).json({
-      success: false,
-      message: 'Use POST /api/auth/login for admin authentication',
-    });
-  });
-
-app.route('/auth/login')
-  .post(login)
-  .get((req, res) => {
-    res.status(405).json({
-      success: false,
-      message: 'Use POST /auth/login for admin authentication',
-    });
-  });
-
-app.get('/login', (req, res) => {
+const loginMethodGuard = (req, res) => {
   res.status(405).json({
     success: false,
-    message: 'Use POST /api/auth/login for admin authentication',
+    message: `Use POST ${req.path} for admin authentication`,
   });
+};
+
+app.all('/api/auth/login', (req, res, next) => {
+  if (req.method === 'POST') return login(req, res, next);
+  return loginMethodGuard(req, res);
 });
+
+app.all('/auth/login', (req, res, next) => {
+  if (req.method === 'POST') return login(req, res, next);
+  return loginMethodGuard(req, res);
+});
+
+app.all('/login', loginMethodGuard);
 
 // API availability guard
 const dbGuard = (req, res, next) => {
@@ -175,7 +169,7 @@ app.get('/', (req, res) => {
 
 
 // Prevent noisy 404/500 logs from browser favicon auto-requests.
-app.get('/favicon.ico', (req, res) => {
+app.all('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 

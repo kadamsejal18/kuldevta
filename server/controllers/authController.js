@@ -125,11 +125,39 @@ export const login = async (req, res) => {
       }
 
       const hasAnyAdmin = await Admin.exists({});
+
+      if (!hasAnyAdmin) {
+        const envEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+        const envPassword = process.env.ADMIN_PASSWORD || '';
+
+        if (normalizedEmail === envEmail && password === envPassword) {
+          const createdAdmin = await Admin.create({
+            email: envEmail,
+            password: envPassword,
+            name: 'Admin',
+            role: 'super-admin',
+          });
+
+          const token = generateToken(createdAdmin._id);
+
+          return res.status(200).json({
+            success: true,
+            token,
+            admin: {
+              id: createdAdmin._id,
+              email: createdAdmin.email,
+              name: createdAdmin.name,
+              role: createdAdmin.role,
+            },
+          });
+        }
+      }
+
       return res.status(hasAnyAdmin ? 401 : 404).json({
         success: false,
         message: hasAnyAdmin
           ? 'Invalid credentials'
-          : 'No admin account found. Create one using /api/auth/create-admin or reset via /api/auth/reset-password.',
+          : 'No admin account found. Create one using /api/auth/create-admin or login once with ADMIN_EMAIL/ADMIN_PASSWORD to auto-bootstrap admin.',
       });
     }
 
