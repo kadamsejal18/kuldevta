@@ -107,12 +107,10 @@ const loginMethodGuard = (req, res) => {
   });
 };
 
-app.all('/api/auth/login', (req, res, next) => {
-  if (req.method === 'POST') return login(req, res, next);
-  return loginMethodGuard(req, res);
-});
+// Match `/api/auth/login`, `/api/auth/login/`, `/auth/login`, `/auth/login/`, and `/login`.
+const loginPathMatcher = /^\/(?:api\/)?auth\/login\/?$/i;
 
-app.all('/auth/login', (req, res, next) => {
+app.all(loginPathMatcher, (req, res, next) => {
   if (req.method === 'POST') return login(req, res, next);
   return loginMethodGuard(req, res);
 });
