@@ -100,22 +100,23 @@ app.get('/health', (req, res) => {
 });
 
 // Explicit login handlers kept at app-level as a compatibility fallback for deployments/proxies.
-const loginMethodGuard = (req, res) => {
-  res.status(405).json({
+const isLoginPath = (path = '') => {
+  const normalizedPath = path.toLowerCase().replace(/\/+$/, '');
+  return normalizedPath === '/api/auth/login' || normalizedPath === '/auth/login' || normalizedPath === '/login';
+};
+
+app.use((req, res, next) => {
+  if (!isLoginPath(req.path)) return next();
+
+  if (req.method === 'POST') {
+    return login(req, res, next);
+  }
+
+  return res.status(405).json({
     success: false,
     message: `Use POST ${req.path} for admin authentication`,
   });
-};
-
-// Match `/api/auth/login`, `/api/auth/login/`, `/auth/login`, `/auth/login/`, and `/login`.
-const loginPathMatcher = /^\/(?:api\/)?auth\/login\/?$/i;
-
-app.all(loginPathMatcher, (req, res, next) => {
-  if (req.method === 'POST') return login(req, res, next);
-  return loginMethodGuard(req, res);
 });
-
-app.all('/login', loginMethodGuard);
 
 // API availability guard
 const dbGuard = (req, res, next) => {
