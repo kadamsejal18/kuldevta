@@ -24,6 +24,7 @@ export default function Admin() {
   const [images, setImages] = useState([])
   const [videos, setVideos] = useState([])
   const [editingId, setEditingId] = useState('')
+  const [loginError, setLoginError] = useState('')
 
   const loadData = async () => {
     const [propertyRes, leadsRes] = await Promise.all([
@@ -47,10 +48,15 @@ export default function Admin() {
 
   const onLogin = async (e) => {
     e.preventDefault()
-    const data = await authAPI.login(credentials.email, credentials.password)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('admin', JSON.stringify(data.admin))
-    setToken(data.token)
+    try {
+      setLoginError('')
+      const data = await authAPI.login(credentials.email, credentials.password)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('admin', JSON.stringify(data.admin))
+      setToken(data.token)
+    } catch (error) {
+      setLoginError(error.message || 'Login failed')
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -84,6 +90,7 @@ export default function Admin() {
         <div className="glass rounded-2xl p-6">
           <h2 className="font-display text-2xl font-bold mb-4">Admin Login</h2>
           <form className="space-y-4" onSubmit={onLogin}>
+            {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
             <input type="email" required value={credentials.email} onChange={(e) => setCredentials((p) => ({ ...p, email: e.target.value }))} placeholder="Email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
             <input type="password" required value={credentials.password} onChange={(e) => setCredentials((p) => ({ ...p, password: e.target.value }))} placeholder="Password" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
             <button type="submit" className="btn-luxury w-full">Login</button>
@@ -117,7 +124,7 @@ export default function Admin() {
 
 function PropertiesTable({ properties, refresh, onEdit }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const filtered = properties.filter((p) => p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.location.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filtered = properties.filter((p) => String(p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(p.location || '').toLowerCase().includes(searchTerm.toLowerCase()))
 
   const toggleFeatured = async (id) => { await propertyAPI.toggleFeatured(id); await refresh() }
   const toggleAd = async (id) => { await propertyAPI.toggleActive(id); await refresh() }
