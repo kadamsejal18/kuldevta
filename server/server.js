@@ -19,6 +19,9 @@ connectDB();
 
 const app = express();
 
+// Trust first proxy (required on Render/other reverse proxy hosts for rate limiting + real client IP)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
