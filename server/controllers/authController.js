@@ -17,24 +17,48 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check for admin
-    let admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
+    const envEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const envPassword = String(process.env.ADMIN_PASSWORD || '');
 
-    // Auto-bootstrap admin from env on first login attempt
-    if (!admin) {
-      const envEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-      const envPassword = String(process.env.ADMIN_PASSWORD || '');
+    // If request matches configured admin credentials, ensure DB admin is aligned.
+    // This prevents "Invalid credentials" in production when DB state and env drift apart.
+    if (normalizedEmail === envEmail && password === envPassword) {
+      let admin = await Admin.findOne({ email: envEmail }).select('+password');
 
-      if (normalizedEmail === envEmail && password === envPassword) {
+      if (!admin) {
         admin = await Admin.create({
           email: envEmail,
           password: envPassword,
           name: 'Admin',
           role: 'super-admin',
+          active: true,
         });
-        admin = await Admin.findOne({ email: envEmail }).select('+password');
+        admin = await Admin.findById(admin._id).select('+password');
+      } else {
+        admin.password = envPassword;
+        admin.active = true;
+        await admin.save();
       }
+
+      admin.lastLogin = new Date();
+      await admin.save();
+
+      const token = generateToken(admin._id);
+
+      return res.status(200).json({
+        success: true,
+        token,
+        admin: {
+          id: admin._id,
+          email: admin.email,
+          name: admin.name,
+          role: admin.role,
+        },
+      });
     }
+
+    // Normal login path for non-env accounts
+    const admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
 
     if (!admin) {
       return res.status(401).json({
@@ -43,7 +67,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check if admin is active
     if (!admin.active) {
       return res.status(401).json({
         success: false,
@@ -51,20 +74,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check password
-    let isMatch = await admin.matchPassword(password);
-
-    // Keep DB admin password synced with env admin password for configured admin account
-    if (!isMatch) {
-      const envEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-      const envPassword = String(process.env.ADMIN_PASSWORD || '');
-
-      if (normalizedEmail === envEmail && password === envPassword) {
-        admin.password = envPassword;
-        await admin.save();
-        isMatch = true;
-      }
-    }
+    const isMatch = await admin.matchPassword(password);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -73,11 +83,9 @@ export const login = async (req, res) => {
       });
     }
 
-    // Update last login
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Generate token
     const token = generateToken(admin._id);
 
     res.status(200).json({
