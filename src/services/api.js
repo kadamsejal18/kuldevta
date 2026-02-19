@@ -1,5 +1,5 @@
 const normalizeApiUrl = (rawUrl) => {
-  const defaultUrl = 'http://localhost:5000/api';
+  const defaultUrl = import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
   if (!rawUrl) return defaultUrl;
 
   const cleaned = rawUrl.replace(/\/+$/, '');
