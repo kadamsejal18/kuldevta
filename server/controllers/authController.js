@@ -7,9 +7,10 @@ import { generateToken } from '../middleware/auth.js';
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Validate input
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
@@ -17,7 +18,23 @@ export const login = async (req, res) => {
     }
 
     // Check for admin
-    const admin = await Admin.findOne({ email }).select('+password');
+    let admin = await Admin.findOne({ email: normalizedEmail }).select('+password');
+
+    // Auto-bootstrap admin from env on first login attempt
+    if (!admin) {
+      const envEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+      const envPassword = String(process.env.ADMIN_PASSWORD || '');
+
+      if (normalizedEmail === envEmail && password === envPassword) {
+        admin = await Admin.create({
+          email: envEmail,
+          password: envPassword,
+          name: 'Admin',
+          role: 'super-admin',
+        });
+        admin = await Admin.findOne({ email: envEmail }).select('+password');
+      }
+    }
 
     if (!admin) {
       return res.status(401).json({
@@ -112,10 +129,11 @@ export const createAdmin = async (req, res) => {
     }
 
     const { email, password, name } = req.body;
+    const adminEmail = String(email || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 
     // Create admin
     const admin = await Admin.create({
-      email: email || process.env.ADMIN_EMAIL,
+      email: adminEmail,
       password: password || process.env.ADMIN_PASSWORD,
       name: name || 'Admin',
       role: 'super-admin',
