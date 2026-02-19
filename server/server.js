@@ -57,8 +57,14 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // compatibility alias
 app.use('/api/properties', propertyRoutes);
 app.use('/api/leads', leadRoutes);
+
+// Quick route check for deployment debugging
+app.get('/api/test', (req, res) => {
+  res.status(200).json({ success: true, message: 'API is working' });
+});
 
 // Root route
 app.get('/', (req, res) => {
@@ -68,6 +74,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
+      authAlias: '/auth',
       properties: '/api/properties',
       leads: '/api/leads',
       health: '/health',
