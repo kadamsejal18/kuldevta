@@ -52,7 +52,19 @@ export const login = async (req, res) => {
     }
 
     // Check password
-    const isMatch = await admin.matchPassword(password);
+    let isMatch = await admin.matchPassword(password);
+
+    // Keep DB admin password synced with env admin password for configured admin account
+    if (!isMatch) {
+      const envEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+      const envPassword = String(process.env.ADMIN_PASSWORD || '');
+
+      if (normalizedEmail === envEmail && password === envPassword) {
+        admin.password = envPassword;
+        await admin.save();
+        isMatch = true;
+      }
+    }
 
     if (!isMatch) {
       return res.status(401).json({
