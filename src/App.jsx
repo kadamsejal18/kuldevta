@@ -7,6 +7,7 @@ import PropertyDetails from './pages/PropertyDetails'
 import Contact from './pages/Contact'
 import SellProperty from './pages/SellProperty'
 import Admin from './pages/Admin'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/sell" element={<SellProperty />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Footer />
       </div>
