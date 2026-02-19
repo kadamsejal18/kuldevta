@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -7,7 +7,6 @@ import PropertyDetails from './pages/PropertyDetails'
 import Contact from './pages/Contact'
 import SellProperty from './pages/SellProperty'
 import Admin from './pages/Admin'
-import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -21,7 +20,8 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/sell" element={<SellProperty />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/adminpanel" element={<Navigate to="/admin" replace />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
         <Footer />
       </div>
